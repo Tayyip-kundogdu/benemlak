@@ -202,28 +202,35 @@ export const searchPropertiesWithAI = async (aiParsedParams: PropertyFilterParam
   return getFilteredProperties(aiParsedParams);
 };
 
+type PropertyUpdate = Partial<
+  Omit<NewProperty, "id" | "createdAt" | "updatedAt">
+>;
 export const updateProperty = async (id: string, data: Partial<NewProperty>) => {
-  const existingProperty = await getPropertyById(id);
-  if (!existingProperty) {
-    throw new Error(`Property with id ${id} not found`);
-  }
-
-  const [property] = await db
+  // ✅ Doğrudan update et ve sonucunu kontrol et
+  const [updatedProperty] = await db
     .update(properties)
     .set({ ...data, updatedAt: new Date() })
     .where(eq(properties.id, id))
     .returning();
-  return property;
-};
 
-export const deleteProperty = async (id: string) => {
-  const existingProperty = await getPropertyById(id);
-  if (!existingProperty) {
+  if (!updatedProperty) {
     throw new Error(`Property with id ${id} not found`);
   }
 
-  const [property] = await db.delete(properties).where(eq(properties.id, id)).returning();
-  return property;
+  return updatedProperty;
+};
+
+export const deleteProperty = async (id: string) => {
+  const [deletedProperty] = await db
+    .delete(properties)
+    .where(eq(properties.id, id))
+    .returning();
+
+  if (!deletedProperty) {
+    throw new Error(`Property with id ${id} not found`);
+  }
+
+  return deletedProperty;
 };
 
 // ==========================================
