@@ -10,6 +10,7 @@ import {
   pgEnum,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
+import { index } from "drizzle-orm/pg-core"
 
 // 🔴 Emlak İlanı ve Portföy Türü Enum Yapıları
 export const listingTypeEnum = pgEnum("listing_type", [
@@ -27,6 +28,8 @@ export const propertyTypeEnum = pgEnum("property_type", [
   "isyeri",
   "bina",
 ]);
+
+
 
 // 1️⃣ Users (Danışman / Admin)
 export const users = pgTable("users", {
@@ -58,6 +61,7 @@ export const categories = pgTable("categories", {
   createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
 });
 
+export const currencyEnum = pgEnum("currency", ["TRY", "USD", "EUR"]);
 // 3️⃣ Properties (Emlak İlanları)
 export const properties = pgTable("properties", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -67,7 +71,7 @@ export const properties = pgTable("properties", {
   
   // Fiyat ve Listeleme Detayları
   price: numeric("price", { precision: 12, scale: 2 }).notNull(),
-  currency: text("currency").notNull().default("TRY"), // TRY, USD, EUR
+  currency: currencyEnum("currency").notNull().default("TRY"), // TRY, USD, EUR
   listingType: listingTypeEnum("listing_type").notNull(),
   propertyType: propertyTypeEnum("property_type").notNull(),
   
@@ -118,7 +122,11 @@ export const properties = pgTable("properties", {
     .notNull()
     .defaultNow()
     .$onUpdate(() => new Date()),
-});
+}, (table) => [
+    // Değişiklik burada: Tablo nesnesinin bitimine index dizisini ekliyoruz
+  index("properties_category_id_idx").on(table.categoryId),
+  index("properties_user_id_idx").on(table.userId),
+]);
 
 // 4️⃣ Leads / Form Messages (Gelen Müşteri Talepleri & Mesajlar)
 export const leads = pgTable("leads", {
