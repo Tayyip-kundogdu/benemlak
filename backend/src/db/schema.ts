@@ -8,6 +8,7 @@ import {
   boolean,
   jsonb,
   pgEnum,
+  bigint,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { index } from "drizzle-orm/pg-core"
@@ -70,7 +71,8 @@ export const properties = pgTable("properties", {
   description: text("description").notNull(),
   
   // Fiyat ve Listeleme Detayları
-  price: numeric("price", { precision: 12, scale: 2 }).notNull(),
+  //price: numeric("price", { precision: 12, scale: 2 }).notNull(),
+  price: bigint("price", { mode: "number" }).notNull(),
   currency: currencyEnum("currency").notNull().default("TRY"), // TRY, USD, EUR
   listingType: listingTypeEnum("listing_type").notNull(),
   propertyType: propertyTypeEnum("property_type").notNull(),
