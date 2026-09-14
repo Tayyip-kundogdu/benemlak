@@ -59,15 +59,54 @@ export const upsertUser = async (data: NewUser) => {
 // 2️⃣ CATEGORY QUERIES
 // ==========================================
 
+// ==========================================
+// 2️⃣ CATEGORY QUERIES (Eksikler Tamamlandı)
+// ==========================================
+
 export const getAllCategories = async () => {
   return db.query.categories.findMany({
     orderBy: (categories, { asc }) => [asc(categories.name)],
   });
 };
 
+export const getCategoryById = async (id: string) => {
+  return db.query.categories.findFirst({
+    where: eq(categories.id, id),
+  });
+};
+
 export const createCategory = async (data: NewCategory) => {
   const [category] = await db.insert(categories).values(data).returning();
   return category;
+};
+
+type CategoryUpdate = Partial<NewCategory>;
+
+export const updateCategory = async (id: string, data: CategoryUpdate) => {
+  const [updatedCategory] = await db
+    .update(categories)
+    .set(data)
+    .where(eq(categories.id, id))
+    .returning();
+
+  if (!updatedCategory) {
+    throw new Error(`Category with id ${id} not found`);
+  }
+
+  return updatedCategory;
+};
+
+export const deleteCategory = async (id: string) => {
+  const [deletedCategory] = await db
+    .delete(categories)
+    .where(eq(categories.id, id))
+    .returning();
+
+  if (!deletedCategory) {
+    throw new Error(`Category with id ${id} not found`);
+  }
+
+  return deletedCategory;
 };
 
 // ==========================================
