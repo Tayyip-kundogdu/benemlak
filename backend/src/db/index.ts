@@ -1,7 +1,8 @@
+import { ENV } from "../config/env";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
 import * as schema from "./schema";
-import { ENV } from "../config/env";
+
 
 if (!ENV.DATABASE_URL) {
   throw new Error("DATABASE_URL is not set in environment variables");
@@ -19,6 +20,7 @@ pool.on("connect", () => {
 pool.on("error", (err) => {
   console.error("💥 Real Estate Database connection error:", err);
 });
+
 
 // Drizzle ORM örneğini oluştur ve emlak şemasını bağla
 export const db = drizzle({ client: pool, schema });

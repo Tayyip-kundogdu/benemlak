@@ -8,7 +8,6 @@ import { clerkMiddleware } from "@clerk/express";
 import propertyRoutes from "./routes/propertyRoutes";
 import categoryRoutes from "./routes/categoryRoutes";
 import leadRoutes from "./routes/leadRoutes";
-import aiRoutes from "./routes/aiRoutes";
 import faqsRoutes from "./routes/faqsRoutes";
 
 const app = express();
@@ -29,8 +28,7 @@ app.get("/api/health", (req, res) => {
     endpoints: {
       properties: "/api/properties", // İlan listeleme, detay, filtreleme
       categories: "/api/categories", // Satılık, Kiralık, Sezonluk vb.
-      leads: "/api/leads",           // Müşteri iletişim/teklif formları
-      ai: "/api/ai",                 // hepsiAI benzeri akıllı arama/öneri motoru
+      leads: "/api/leads",           // Müşteri iletişim/teklif formları               // hepsiAI benzeri akıllı arama/öneri motoru
       faqs: "/api/faqs",             // Sıkça Sorulan Sorular
     },
   });
@@ -40,7 +38,6 @@ app.get("/api/health", (req, res) => {
 app.use("/api/properties", propertyRoutes);
 app.use("/api/categories", categoryRoutes);
 app.use("/api/leads", leadRoutes);
-app.use("/api/ai", aiRoutes);
 app.use("/api/faqs", faqsRoutes); // Sıkça Sorulan Sorular için route
 
 // Production Build Servisi (SPA Routing)
@@ -55,5 +52,7 @@ if (ENV.NODE_ENV === "production") {
     res.sendFile(path.join(__dirname, "../frontend/dist/index.html"));
   });
 }
+
+
 
 app.listen(ENV.PORT, () => console.log("Real Estate Server running on PORT:", ENV.PORT));
