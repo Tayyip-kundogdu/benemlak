@@ -57,8 +57,9 @@ export const updateLeadStatus = async (req: Request, res: Response) => {
     const { id } = req.params;
     const { status } = req.body; // "new", "contacted", "closed"
 
-    if (!status) {
-      res.status(400).json({ error: "Durum (status) bilgisi zorunludur." });
+    const allowedStatuses = new Set(["new", "contacted", "closed"]);
+    if (typeof status !== "string" || !allowedStatuses.has(status)) {
+      res.status(400).json({ error: "Geçersiz durum (status) bilgisi." });
       return;
     }
 
