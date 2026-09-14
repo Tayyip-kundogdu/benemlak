@@ -221,9 +221,26 @@ export const getAllProperties = async (req: Request, res: Response) => {
 };
 
 // Öne çıkan ilanları getir (Public)
+// Helper: Güvenli sayı alma
+const parsePositiveNumber = (val: unknown): number | undefined => {
+  if (typeof val !== "string") return undefined;
+  const num = Number(val);
+  return Number.isFinite(num) && num > 0 ? num : undefined;
+};
+
+// Öne çıkan ilanlar (Public)
 export const getFeaturedProperties = async (req: Request, res: Response) => {
   try {
-    const limit = req.query.limit ? Number(req.query.limit) : 6;
+    const rawLimit = req.query.limit;
+    
+    // Geçersiz sayısal string gönderildiyse
+    if (rawLimit !== undefined && typeof rawLimit !== "string") {
+      res.status(400).json({ error: "Invalid limit parameter" });
+      return;
+    }
+
+    const limit = parsePositiveNumber(rawLimit) ?? 6;
+
     const properties = await queries.getFeaturedProperties(limit);
     res.status(200).json(properties);
   } catch (error) {
@@ -231,7 +248,7 @@ export const getFeaturedProperties = async (req: Request, res: Response) => {
     res.status(500).json({ error: "Failed to get featured properties" });
   }
 };
-
+/*
 // Dinamik filtreleme ve arama parametreleriyle ilanları getir (Public)
 export const getFilteredProperties = async (req: Request, res: Response) => {
   try {
@@ -274,6 +291,56 @@ export const getFilteredProperties = async (req: Request, res: Response) => {
     res.status(500).json({ error: "Failed to filter properties" });
   }
 };
+*/
+
+// Helper: Tekil string alma (Dizi/Array olarak gönderilen parametreleri engellemek için)
+const parseStringParam = (val: unknown): string | undefined => {
+  return typeof val === "string" ? val : undefined;
+};
+
+// Dinamik filtreleme ve arama parametreleriyle ilanları getir (Public)
+export const getFilteredProperties = async (req: Request, res: Response) => {
+  try {
+    const {
+      city,
+      district,
+      neighborhood,
+      listingType,
+      propertyType,
+      categoryId,
+      minPrice,
+      maxPrice,
+      minNetM2,
+      maxNetM2,
+      roomCount,
+      isFeatured,
+      searchQuery,
+    } = req.query;
+
+    const filters: PropertyFilterParams = {
+      city: parseStringParam(city),
+      district: parseStringParam(district),
+      neighborhood: parseStringParam(neighborhood),
+      listingType: parseStringParam(listingType) as PropertyFilterParams["listingType"],
+      propertyType: parseStringParam(propertyType) as PropertyFilterParams["propertyType"],
+      categoryId: parseStringParam(categoryId),
+      minPrice: parsePositiveNumber(minPrice),
+      maxPrice: parsePositiveNumber(maxPrice),
+      minNetM2: parsePositiveNumber(minNetM2),
+      maxNetM2: parsePositiveNumber(maxNetM2),
+      roomCount: parseStringParam(roomCount),
+      isFeatured: parseStringParam(isFeatured) !== undefined ? parseStringParam(isFeatured) === "true" : undefined,
+      searchQuery: parseStringParam(searchQuery),
+    };
+
+    const properties = await queries.getFilteredProperties(filters);
+    res.status(200).json(properties);
+  } catch (error) {
+    console.error("Error filtering properties:", error);
+    res.status(500).json({ error: "Failed to filter properties" });
+  }
+};
+
 
 // hepsiAI Esnek Arama Entegrasyonu (Public)
 export const searchPropertiesWithAI = async (req: Request, res: Response) => {

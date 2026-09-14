@@ -22,26 +22,18 @@ router.get("/:id", getCategory);
  
 //export default router;
  
-
 import { Router } from "express";
 import * as categoryController from "../controllers/categoryController";
 import { requireAuth } from "@clerk/express";
+import { requireAdvisor } from "../middleware/requireAdvisor";
 
 const router = Router();
 
-// GET /api/categories - Tüm kategorileri/ilan tiplerini getir (Public)
 router.get("/", categoryController.getAllCategories);
-
-// GET /api/categories/:id - ID'ye göre tek kategori getir (Public)
 router.get("/:id", categoryController.getCategoryById);
 
-// POST /api/categories - Yeni kategori oluştur (Protected - Sadece Danışman)
-router.post("/", requireAuth(), categoryController.createCategory);
-
-// PUT /api/categories/:id - Kategori güncelle (Protected - Sadece Danışman)
-router.put("/:id", requireAuth(), categoryController.updateCategory);
-
-// DELETE /api/categories/:id - Kategori sil (Protected - Sadece Danışman)
-router.delete("/:id", requireAuth(), categoryController.deleteCategory);
+router.post("/", requireAuth(), requireAdvisor, categoryController.createCategory);
+router.put("/:id", requireAuth(), requireAdvisor, categoryController.updateCategory);
+router.delete("/:id", requireAuth(), requireAdvisor, categoryController.deleteCategory);
 
 export default router;
