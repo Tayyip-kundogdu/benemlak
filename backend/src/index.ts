@@ -9,6 +9,7 @@ import propertyRoutes from "./routes/propertyRoutes";
 import categoryRoutes from "./routes/categoryRoutes";
 import leadRoutes from "./routes/leadRoutes";
 import faqsRoutes from "./routes/faqsRoutes";
+import aiRoutes from "./routes/aiRoutes";
 
 const app = express();
 
@@ -39,7 +40,7 @@ app.use("/api/properties", propertyRoutes);
 app.use("/api/categories", categoryRoutes);
 app.use("/api/leads", leadRoutes);
 app.use("/api/faqs", faqsRoutes); // Sıkça Sorulan Sorular için route
-
+app.use("/api/ai", aiRoutes); // AI özellikler için route
 // Production Build Servisi (SPA Routing)
 if (ENV.NODE_ENV === "production") {
   const __dirname = path.resolve();
