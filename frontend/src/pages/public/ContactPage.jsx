@@ -13,8 +13,15 @@ export const ContactPage = () => {
   });
 
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
 
   const handleChange = (e) => {
+
+    if (errorMessage) {
+      setErrorMessage('');
+    }
+
+
     const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
@@ -24,6 +31,8 @@ export const ContactPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setIsSubmitted(false);
+    setErrorMessage(''); // Yeni denemede eski hatayı temizle
 
     try {
       await createLeadMutation.mutateAsync({
@@ -47,6 +56,9 @@ export const ContactPage = () => {
       }, 5000);
     } catch (error) {
       console.error('Mesaj gönderilirken hata oluştu:', error);
+      setErrorMessage(
+        'Mesajınız gönderilirken bir hata oluştu. Lütfen bilgilerinizi kontrol edip tekrar deneyiniz.'
+      );
     }
   };
 

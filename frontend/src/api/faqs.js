@@ -6,6 +6,12 @@ export const getActiveFaqs = async () => {
   return response.data;
 };
 
+// Admin paneli için (Tüm SSS'ler - aktif + pasif)
+export const getAllFaqs = async () => {
+  const response = await api.get('/faqs/admin'); // Backend'deki tümünü getiren endpoint
+  return response.data;
+};
+
 // Yeni SSS sorusu oluştur (Danışman Yetkisi Gerektirir)
 // Payload: { question, answer, order?, isActive? }
 export const createFaq = async (faqData) => {

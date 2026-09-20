@@ -310,6 +310,11 @@ export const deleteLead = async (id: string) => {
 // 5️⃣ FAQ QUERIES (Sıkça Sorulan Sorular)
 // ==========================================
 
+// ==========================================
+// 5️⃣ FAQ QUERIES (Sıkça Sorulan Sorular)
+// ==========================================
+
+// Ziyaretçiler için (Sadece aktif olan SSS'ler)
 export const getActiveFaqs = async () => {
   return db.query.faqs.findMany({
     where: eq(faqs.isActive, true),
@@ -317,7 +322,45 @@ export const getActiveFaqs = async () => {
   });
 };
 
+// Admin Paneli için (Aktif ve Pasif TÜM SSS'ler)
+export const getAllFaqs = async () => {
+  return db.query.faqs.findMany({
+    orderBy: (faqs, { asc }) => [asc(faqs.order)],
+  });
+};
+
+// Yeni SSS Ekleme
 export const createFaq = async (data: NewFaq) => {
   const [faq] = await db.insert(faqs).values(data).returning();
   return faq;
+};
+
+// SSS Güncelleme (Aktif/Pasif yapma, metin değiştirme vb.)
+type FaqUpdate = Partial<NewFaq>;
+export const updateFaq = async (id: string, data: FaqUpdate) => {
+  const [updatedFaq] = await db
+    .update(faqs)
+    .set(data)
+    .where(eq(faqs.id, id))
+    .returning();
+
+  if (!updatedFaq) {
+    throw new Error(`FAQ with id ${id} not found`);
+  }
+
+  return updatedFaq;
+};
+
+// SSS Silme
+export const deleteFaq = async (id: string) => {
+  const [deletedFaq] = await db
+    .delete(faqs)
+    .where(eq(faqs.id, id))
+    .returning();
+
+  if (!deletedFaq) {
+    throw new Error(`FAQ with id ${id} not found`);
+  }
+
+  return deletedFaq;
 };

@@ -200,7 +200,7 @@ export default function App() {
   );
 }*/
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { SignedIn, SignedOut, RedirectToSignIn, useAuth } from '@clerk/clerk-react';
 import { setupAxiosInterceptors } from './api/axios';
@@ -249,11 +249,22 @@ const AdminPanelLayout = () => {
 
 export default function App() {
   const { getToken } = useAuth();
+  const [isReady, setIsReady] = useState(false);
 
   // Axios isteklerine otomatik Clerk Bearer token eklenmesi
   useEffect(() => {
     setupAxiosInterceptors(getToken);
+    setIsReady(true);
   }, [getToken]);
+
+  // Interceptor kurulana kadar sayfaları yükleme (Yarış durumunu / race condition'ı engeller)
+  if (!isReady) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#F7F5EE]">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-800" />
+      </div>
+    );
+  }
 
   return (
     <Routes>

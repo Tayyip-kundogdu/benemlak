@@ -57,7 +57,7 @@ export const buildPropertyPayload = (data, { isUpdate = false } = {}) => {
     description: toStr(data.description),
 
     price: toInt(data.price),
-    currency: data.currency || 'TRY',
+    currency: data.currency || (isUpdate ? undefined : 'TRY'),
     listingType: data.listingType,
     propertyType: data.propertyType,
 
@@ -86,12 +86,19 @@ export const buildPropertyPayload = (data, { isUpdate = false } = {}) => {
       publicTransportMeters: toFloat(data.distances?.publicTransportMeters),
     }),
 
-    features: Array.isArray(data.features) ? data.features.filter(Boolean) : [],
+      features: Array.isArray(data.features)
+      ? data.features.filter(Boolean)
+      : isUpdate ? undefined : [],
 
     coverImage: toStr(data.coverImage),
-    images: Array.isArray(data.images) ? data.images.filter(Boolean) : [],
+    images: Array.isArray(data.images)
+  ? data.images.filter(Boolean)
+  : isUpdate ? undefined : [],
     isFeatured: Boolean(data.isFeatured),
-    isActive: data.isActive === undefined ? true : Boolean(data.isActive),
+    isActive:
+      data.isActive === undefined
+        ? (isUpdate ? undefined : true)
+        : Boolean(data.isActive),
 
     categoryId: toStr(data.categoryId),
     // userId GÖNDERME: backend Clerk token'dan alıyor
@@ -113,34 +120,68 @@ export const getApiErrorMessage = (error) => {
 
 // ---------- API çağrıları ----------
 
+const normalizeProperty = (item) => {
+  if (!item) return item;
+
+  // listingType eşlemesi (satilik -> sale, kiralik -> rent)
+  let type = item.listingType;
+  if (item.listingType === 'satilik') type = 'sale';
+  if (item.listingType === 'kiralik') type = 'rent';
+
+  // images dizisi boşsa coverImage'i kullan
+  const images = (Array.isArray(item.images) && item.images.length > 0)
+    ? item.images
+    : (item.coverImage ? [item.coverImage] : []);
+
+  return {
+    ...item, // backend'den gelen orijinal alanları koru
+    type,
+    bedroomCount: item.roomCount,
+    rooms: item.roomCount,
+    areaNet: item.netM2,
+    area: item.netM2,
+    heating: item.heatingType,
+    images,
+  };
+};
+
+// Hem liste hem tekil veri için destek sağlayan wrapper:
+const normalizeResponse = (data) => {
+  if (!data) return data;
+  if (Array.isArray(data)) {
+    return data.map(normalizeProperty);
+  }
+  return normalizeProperty(data);
+};
+
 // 1️⃣ Tüm veya filtrelenmiş ilanlar (Public)
 export const getFilteredProperties = async (filters = {}) => {
   const response = await api.get('/properties', { params: filters });
-  return response.data;
+  return normalizeResponse(response.data);
 };
 
 // 2️⃣ Öne çıkan ilanlar (Public)
 export const getFeaturedProperties = async (limit = 6) => {
   const response = await api.get('/properties/featured', { params: { limit } });
-  return response.data;
+  return normalizeResponse(response.data);
 };
 
 // 3️⃣ Slug ile ilan detayı (Public)
 export const getPropertyBySlug = async (slug) => {
   const response = await api.get(`/properties/slug/${slug}`);
-  return response.data;
+  return normalizeResponse(response.data);
 };
 
 // 4️⃣ ID ile ilan detayı (Public)
 export const getPropertyById = async (id) => {
   const response = await api.get(`/properties/${id}`);
-  return response.data;
+  return normalizeResponse(response.data);
 };
 
 // 5️⃣ Yeni ilan oluştur (Protected)
 export const createProperty = async (propertyData) => {
   const response = await api.post('/properties', buildPropertyPayload(propertyData));
-  return response.data;
+  return normalizeResponse(response.data);
 };
 
 // 6️⃣ İlan güncelle (Protected)
@@ -149,11 +190,11 @@ export const updateProperty = async (id, propertyData) => {
     `/properties/${id}`,
     buildPropertyPayload(propertyData, { isUpdate: true })
   );
-  return response.data;
+  return normalizeResponse(response.data);
 };
 
 // 7️⃣ İlan sil (Protected)
 export const deleteProperty = async (id) => {
   const response = await api.delete(`/properties/${id}`);
-  return response.data;
+  return normalizeResponse(response.data);
 };

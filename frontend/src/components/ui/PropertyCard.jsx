@@ -29,8 +29,10 @@ export const PropertyCard = ({ property }) => {
   const isPropertyFeatured = isFeatured || featured;
 
   const formatPrice = (amount) => {
-    if (!amount) return 'Fiyat Belirtilmedi';
-    return new Intl.NumberFormat('tr-TR', { maximumFractionDigits: 0 }).format(amount);
+    if (amount === null || amount === undefined || typeof amount !== 'number' || Number.isNaN(amount)) {
+      return 'Fiyat Belirtilmedi';
+    }
+    return `${new Intl.NumberFormat('tr-TR', { maximumFractionDigits: 0 }).format(amount)} TL`;
   };
 
   return (
@@ -108,7 +110,7 @@ export const PropertyCard = ({ property }) => {
             <div>
               <span className="text-xs text-gray-400 block">Fiyat</span>
               <span className="text-xl font-extrabold text-[#224239]">
-                {formatPrice(price)} TL
+                {formatPrice(price)} 
               </span>
             </div>
             <Link

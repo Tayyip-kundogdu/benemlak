@@ -35,7 +35,7 @@ export default function AdminSidebar() {
         {/* MENÜ */}
         <div className="flex flex-col gap-3">
           <span className="text-[10px] font-bold tracking-widest text-stone-400 uppercase">
-            DANISMAN PANELI
+            DANIŞMAN PANELİ
           </span>
 
           <nav className="flex flex-col gap-1.5">

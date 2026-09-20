@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   getActiveFaqs,
+  getAllFaqs, // 1. Bütün SSS'leri getiren API fonksiyonu eklendi
   createFaq,
   updateFaq,
   deleteFaq,
@@ -11,9 +12,11 @@ export const FAQ_KEYS = {
   all: ['faqs'],
   lists: () => [...FAQ_KEYS.all, 'list'],
   list: (filters) => [...FAQ_KEYS.lists(), filters],
+  adminLists: () => [...FAQ_KEYS.all, 'admin-list'],
+  adminList: (filters) => [...FAQ_KEYS.adminLists(), filters],
 };
 
-// 1. SSS listesini getiren Hook (getActiveFaqs ile uyumlu)
+// 1. Ziyaretçiler İçin: SSS listesini getiren Hook (Sadece aktif olanlar)
 export const useFaqs = (filters = {}) => {
   return useQuery({
     queryKey: FAQ_KEYS.list(filters),
@@ -22,7 +25,15 @@ export const useFaqs = (filters = {}) => {
   });
 };
 
-// 2. Yeni SSS ekleme Mutation Hook'u (Protected - Sadece Danışman)
+// 2. Admin Paneli İçin: Tüm SSS listesini getiren Hook (Aktif + Pasif hepsi)
+export const useAdminFaqs = (filters = {}) => {
+  return useQuery({
+    queryKey: FAQ_KEYS.adminList(filters),
+    queryFn: () => getAllFaqs(),
+  });
+};
+
+// 3. Yeni SSS ekleme Mutation Hook'u (Protected - Sadece Danışman)
 export const useCreateFaq = () => {
   const queryClient = useQueryClient();
 
@@ -34,7 +45,7 @@ export const useCreateFaq = () => {
   });
 };
 
-// 3. SSS güncelleme Mutation Hook'u (Protected - Sadece Danışman)
+// 4. SSS güncelleme Mutation Hook'u (Protected - Sadece Danışman)
 export const useUpdateFaq = () => {
   const queryClient = useQueryClient();
 
@@ -46,7 +57,7 @@ export const useUpdateFaq = () => {
   });
 };
 
-// 4. SSS silme Mutation Hook'u (Protected - Sadece Danışman)
+// 5. SSS silme Mutation Hook'u (Protected - Sadece Danışman)
 export const useDeleteFaq = () => {
   const queryClient = useQueryClient();
 
