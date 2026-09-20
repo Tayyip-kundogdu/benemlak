@@ -1,5 +1,5 @@
 import React from 'react';
-import { NavLink, useNavigate } from 'react-router';
+import { NavLink, useNavigate } from 'react-router-dom';
 import { useClerk } from '@clerk/clerk-react';
 import { LayoutDashboard, Building2, HelpCircle, MessageSquare, LogOut } from 'lucide-react';
 
@@ -35,7 +35,7 @@ export default function AdminSidebar() {
         {/* MENÜ */}
         <div className="flex flex-col gap-3">
           <span className="text-[10px] font-bold tracking-widest text-stone-400 uppercase">
-            ÇALIŞMA MASASI
+            DANIŞMAN PANELİ
           </span>
 
           <nav className="flex flex-col gap-1.5">

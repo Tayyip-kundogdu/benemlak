@@ -109,13 +109,101 @@ export default function App() {
     </div>
   );
 }
-*/
 
 
 
 import React from 'react';
-import { Routes, Route, Navigate, Outlet } from 'react-router';
+import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { SignedIn, SignedOut, RedirectToSignIn } from '@clerk/clerk-react';
+
+// Layout Bileşenleri
+import Navbar from './components/layout/Navbar';
+import Footer from './components/layout/Footer';
+import AdminSidebar from './components/layout/AdminSidebar';
+
+// Müşteri Sayfaları (Public)
+import HomePage from './pages/public/HomePage';
+import PropertiesPage from './pages/public/PropertiesPage';
+import PropertyDetailPage from './pages/public/PropertyDetailPage';
+import ContactPage from './pages/public/ContactPage';
+
+// Admin / Danışman Paneli Sayfaları
+import DashboardPage from './pages/admin/DashboardPage';
+import AdminPropertiesPage from './pages/admin/AdminPropertiesPage';
+import AdminFaqsPage from './pages/admin/AdminFaqsPage';
+import AdminLeadsPage from './pages/admin/AdminLeadsPage';
+
+
+
+// Müşteri Arayüzü Sarmalayıcısı (Navbar + İçerik + Footer)
+const PublicLayout = () => {
+  return (
+    <div className="min-h-screen flex flex-col bg-[#F7F5EE] text-stone-800 font-sans">
+      <Navbar />
+      <main className="grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <Outlet />
+      </main>
+      <Footer />
+    </div>
+  );
+};
+
+// Admin / Danışman Paneli Sarmalayıcısı (Sol Koyu Yeşil Sidebar + İçerik)
+const AdminPanelLayout = () => {
+  return (
+    <div className="min-h-screen flex bg-[#F7F5EE] text-stone-800 font-sans">
+      <AdminSidebar />
+      <main className="flex-1 p-8 overflow-y-auto">
+        <Outlet />
+      </main>
+    </div>
+  );
+};
+
+export default function App() {
+  return (
+    <Routes>
+      
+      <Route element={<PublicLayout />}>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/ilanlar" element={<PropertiesPage />} />
+        
+        <Route path="/ilan/:slug" element={<PropertyDetailPage />} />
+        <Route path="/ilanlar/:slug" element={<PropertyDetailPage />} />
+        <Route path="/iletisim" element={<ContactPage />} />
+      </Route>
+
+      
+      <Route
+        element={
+          <>
+            <SignedIn>
+              <AdminPanelLayout />
+            </SignedIn>
+            <SignedOut>
+              <RedirectToSignIn />
+            </SignedOut>
+          </>
+        }
+      >
+        <Route path="/admin" element={<Navigate to="/admin/genel-bakis" replace />} />
+        <Route path="/admin/genel-bakis" element={<DashboardPage />} />
+        <Route path="/admin/ilanlar" element={<AdminPropertiesPage />} />
+        <Route path="/admin/sss" element={<AdminFaqsPage />} />
+        <Route path="/admin/talepler" element={<AdminLeadsPage />} />
+        <Route path="/admin/mesajlar" element={<AdminLeadsPage />} />
+      </Route>
+
+      
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  );
+}*/
+
+import React, { useEffect, useState } from 'react';
+import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
+import { SignedIn, SignedOut, RedirectToSignIn, useAuth } from '@clerk/clerk-react';
+import { setupAxiosInterceptors } from './api/axios';
 
 // Layout Bileşenleri
 import Navbar from './components/layout/Navbar';
@@ -160,13 +248,32 @@ const AdminPanelLayout = () => {
 };
 
 export default function App() {
+  const { getToken } = useAuth();
+  const [isReady, setIsReady] = useState(false);
+
+  // Axios isteklerine otomatik Clerk Bearer token eklenmesi
+  useEffect(() => {
+    setupAxiosInterceptors(getToken);
+    setIsReady(true);
+  }, [getToken]);
+
+  // Interceptor kurulana kadar sayfaları yükleme (Yarış durumunu / race condition'ı engeller)
+  if (!isReady) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#F7F5EE]">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-800" />
+      </div>
+    );
+  }
+
   return (
     <Routes>
       {/* 1. MÜŞTERİ / ZİYARETÇİ ROTALARI (Navbar & Footer İçerir) */}
       <Route element={<PublicLayout />}>
         <Route path="/" element={<HomePage />} />
         <Route path="/ilanlar" element={<PropertiesPage />} />
-        <Route path="/ilanlar/:id" element={<PropertyDetailPage />} />
+        <Route path="/ilan/:slug" element={<PropertyDetailPage />} />
+        <Route path="/ilanlar/:slug" element={<PropertyDetailPage />} />
         <Route path="/iletisim" element={<ContactPage />} />
       </Route>
 
@@ -187,6 +294,7 @@ export default function App() {
         <Route path="/admin/genel-bakis" element={<DashboardPage />} />
         <Route path="/admin/ilanlar" element={<AdminPropertiesPage />} />
         <Route path="/admin/sss" element={<AdminFaqsPage />} />
+        <Route path="/admin/talepler" element={<AdminLeadsPage />} />
         <Route path="/admin/mesajlar" element={<AdminLeadsPage />} />
       </Route>
 
