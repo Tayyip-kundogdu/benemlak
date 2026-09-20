@@ -299,6 +299,13 @@ export const updateLeadStatus = async (id: string, status: string) => {
   return lead;
 };
 
+export const deleteLead = async (id: string) => {
+  const [deletedLead] = await db
+    .delete(leads)
+    .where(eq(leads.id, id))
+    .returning();
+  return deletedLead;
+};
 // ==========================================
 // 5️⃣ FAQ QUERIES (Sıkça Sorulan Sorular)
 // ==========================================

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link } from 'react-router';
+import { Link } from 'react-router-dom';
 
 export default function Footer() {
   return (
@@ -45,7 +45,7 @@ export default function Footer() {
             <div className="flex flex-col gap-1.5 text-xs text-stone-300">
               <p>Gazi Caddesi, Merkez / Çorum</p>
               <p>0536 071 48 22</p>
-              <p>yusufsaylan@gmail</p>
+              <p>yusufsaylan@gmail.com</p>
             </div>
           </div>
 

@@ -76,3 +76,26 @@ export const updateLeadStatus = async (req: Request, res: Response) => {
     res.status(500).json({ error: "Talep durumu güncellenemedi." });
   }
 };
+
+// DELETE /api/leads/:id -> Talebi sil (Protected - Sadece Danışman)
+export const deleteLead = async (req: Request, res: Response) => {
+  try {
+    const { userId } = getAuth(req);
+    if (!userId) return res.status(401).json({ error: "Unauthorized" });
+
+    const { id } = req.params;
+
+    // db/queries altında deleteLead sorgun olmalı
+    const deletedLead = await queries.deleteLead(id as string);
+
+    if (!deletedLead) {
+      res.status(404).json({ error: "Silinecek talep bulunamadı." });
+      return;
+    }
+
+    res.status(200).json({ message: "Talep başarıyla silindi.", id });
+  } catch (error) {
+    console.error("Error deleting lead:", error);
+    res.status(500).json({ error: "Talep silinirken hata oluştu." });
+  }
+};

@@ -14,7 +14,7 @@ router.get("/", requireAuth(), requireAdvisor, leadController.getAllLeads);
 // Danışmanın mesaj durumunu "contacted" veya "closed" yapması (Protected)
 router.patch("/:id/status", requireAuth(), requireAdvisor, leadController.updateLeadStatus);
 
-
-
+// Danışmanın mesajı/talebi silmesi (Protected)
+router.delete("/:id", requireAuth(), requireAdvisor, leadController.deleteLead);
 
 export default router;

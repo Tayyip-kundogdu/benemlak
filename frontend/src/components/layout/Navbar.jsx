@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link, useLocation, useNavigate } from 'react-router';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { SignedIn, SignedOut, useClerk, UserButton } from '@clerk/clerk-react';
 import { ShieldCheck, LayoutDashboard } from 'lucide-react';
 

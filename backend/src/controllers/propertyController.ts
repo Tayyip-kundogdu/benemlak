@@ -1,215 +1,56 @@
-/*
-import { Request, Response } from "express";
-import {
-  createProperty,
-  getAllProperties,
-  getFeaturedProperties,
-  getPropertyBySlug,
-  getPropertyById,
-  getFilteredProperties,
-  searchPropertiesWithAI,
-  updateProperty,
-  deleteProperty,
-  type PropertyFilterParams,
-} from "../db/queries";
-
-// ==========================================
-// İLAN (PROPERTY) CONTROLLER
-// queries.ts içindeki fonksiyonları HTTP katmanına bağlar
-// ==========================================
-
-// query string'den gelen filtreleri PropertyFilterParams'a dönüştürür
-// (Express'te req.query her zaman string/undefined gelir, tipleri elle çeviriyoruz)
-const parseFilterParams = (query: Request["query"]): PropertyFilterParams => {
-  const {
-    city,
-    district,
-    neighborhood,
-    listingType,
-    propertyType,
-    categoryId,
-    minPrice,
-    maxPrice,
-    minNetM2,
-    maxNetM2,
-    roomCount,
-    isFeatured,
-    searchQuery,
-  } = query;
-
-  return {
-    city: city as string | undefined,
-    district: district as string | undefined,
-    neighborhood: neighborhood as string | undefined,
-    listingType: listingType as PropertyFilterParams["listingType"],
-    propertyType: propertyType as PropertyFilterParams["propertyType"],
-    categoryId: categoryId as string | undefined,
-    minPrice: minPrice !== undefined ? Number(minPrice) : undefined,
-    maxPrice: maxPrice !== undefined ? Number(maxPrice) : undefined,
-    minNetM2: minNetM2 !== undefined ? Number(minNetM2) : undefined,
-    maxNetM2: maxNetM2 !== undefined ? Number(maxNetM2) : undefined,
-    roomCount: roomCount as string | undefined,
-    isFeatured:
-      isFeatured !== undefined ? isFeatured === "true" : undefined,
-    searchQuery: searchQuery as string | undefined,
-  };
-};
-
-// GET /properties
-export const getProperties = async (req: Request, res: Response) => {
-  try {
-    const properties = await getAllProperties();
-    return res.status(200).json(properties);
-  } catch (error) {
-    console.error("getProperties error:", error);
-    return res
-      .status(500)
-      .json({ message: "İlanlar getirilirken bir hata oluştu." });
-  }
-};
-
-// GET /properties/featured?limit=6
-export const getFeatured = async (req: Request, res: Response) => {
-  try {
-    const { limit } = req.query;
-    const parsedLimit = limit !== undefined ? Number(limit) : undefined;
-    const properties = await getFeaturedProperties(parsedLimit);
-    return res.status(200).json(properties);
-  } catch (error) {
-    console.error("getFeatured error:", error);
-    return res
-      .status(500)
-      .json({ message: "Öne çıkan ilanlar getirilirken bir hata oluştu." });
-  }
-};
-
-// GET /properties/filter?city=...&minPrice=...&maxPrice=...
-export const filterProperties = async (req: Request, res: Response) => {
-  try {
-    const filters = parseFilterParams(req.query);
-    const properties = await getFilteredProperties(filters);
-    return res.status(200).json(properties);
-  } catch (error) {
-    console.error("filterProperties error:", error);
-    return res
-      .status(500)
-      .json({ message: "İlanlar filtrelenirken bir hata oluştu." });
-  }
-};
-
-// POST /properties/ai-search
-// Body: { query: string } -> önce LLM ile PropertyFilterParams'a çevrilip buraya gönderilir
-// (hepsiAI tarzı doğal dil araması: parse işlemi ayrı bir servis katmanında yapılıp
-// buraya hazır aiParsedParams olarak gelmesi önerilir)
-export const aiSearchProperties = async (req: Request, res: Response) => {
-  try {
-    const aiParsedParams: PropertyFilterParams = req.body;
-    const properties = await searchPropertiesWithAI(aiParsedParams);
-    return res.status(200).json(properties);
-  } catch (error) {
-    console.error("aiSearchProperties error:", error);
-    return res
-      .status(500)
-      .json({ message: "AI araması sırasında bir hata oluştu." });
-  }
-};
-
-// GET /properties/slug/:slug (SEO dostu URL)
-export const getPropertyBySlugHandler = async (
-  req: Request,
-  res: Response
-) => {
-  try {
-    const { slug } = req.params;
-    const property = await getPropertyBySlug(slug as string);
-
-    if (!property) {
-      return res.status(404).json({ message: "İlan bulunamadı." });
-    }
-
-    return res.status(200).json(property);
-  } catch (error) {
-    console.error("getPropertyBySlugHandler error:", error);
-    return res
-      .status(500)
-      .json({ message: "İlan getirilirken bir hata oluştu." });
-  }
-};
-
-// GET /properties/:id
-export const getProperty = async (req: Request, res: Response) => {
-  try {
-    const { id } = req.params;
-    const property = await getPropertyById(id as string);
-
-    if (!property) {
-      return res.status(404).json({ message: "İlan bulunamadı." });
-    }
-
-    return res.status(200).json(property);
-  } catch (error) {
-    console.error("getProperty error:", error);
-    return res
-      .status(500)
-      .json({ message: "İlan getirilirken bir hata oluştu." });
-  }
-};
-
-// POST /properties
-export const createPropertyHandler = async (req: Request, res: Response) => {
-  try {
-    const newProperty = await createProperty(req.body);
-    return res.status(201).json(newProperty);
-  } catch (error) {
-    console.error("createPropertyHandler error:", error);
-    return res
-      .status(500)
-      .json({ message: "İlan oluşturulurken bir hata oluştu." });
-  }
-};
-
-// PUT /properties/:id
-export const updatePropertyHandler = async (req: Request, res: Response) => {
-  try {
-    const { id } = req.params;
-    const updatedProperty = await updateProperty(id as string, req.body);
-    return res.status(200).json(updatedProperty);
-  } catch (error: any) {
-    console.error("updatePropertyHandler error:", error);
-    if (error.message?.includes("not found")) {
-      return res.status(404).json({ message: "İlan bulunamadı." });
-    }
-    return res
-      .status(500)
-      .json({ message: "İlan güncellenirken bir hata oluştu." });
-  }
-};
-
-// DELETE /properties/:id
-export const deletePropertyHandler = async (req: Request, res: Response) => {
-  try {
-    const { id } = req.params;
-    const deletedProperty = await deleteProperty(id as string);
-    return res
-      .status(200)
-      .json({ message: "İlan silindi.", property: deletedProperty });
-  } catch (error: any) {
-    console.error("deletePropertyHandler error:", error);
-    if (error.message?.includes("not found")) {
-      return res.status(404).json({ message: "İlan bulunamadı." });
-    }
-    return res
-      .status(500)
-      .json({ message: "İlan silinirken bir hata oluştu." });
-  }
-};*/
-
 import type { Request, Response } from "express";
 import * as queries from "../db/queries";
-import { getAuth } from "@clerk/express";
+import { getAuth, clerkClient } from "@clerk/express";
 import { PropertyFilterParams } from "../db/queries";
 
-// Tüm aktif ilanları getir (Public)
+// ---------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------
+
+// Güvenli pozitif sayı alma
+const parsePositiveNumber = (val: unknown): number | undefined => {
+  if (typeof val !== "string") return undefined;
+  const num = Number(val);
+  return Number.isFinite(num) && num > 0 ? num : undefined;
+};
+
+// Tekil string alma (dizi olarak gönderilen parametreleri engellemek için)
+const parseStringParam = (val: unknown): string | undefined => {
+  return typeof val === "string" ? val : undefined;
+};
+
+const LISTING_TYPES = ["satilik", "kiralik", "sezonluk_kiralik", "konut_projesi"];
+const PROPERTY_TYPES = ["daire", "villa", "müstakil_ev", "arsa", "isyeri", "bina"];
+const CURRENCIES = ["TRY", "USD", "EUR"];
+
+// Clerk kullanıcısı users tablosunda yoksa Clerk'ten bilgilerini alıp ekler
+const ensureUserExists = async (userId: string) => {
+  const existing = await queries.getUserById(userId);
+  if (existing) return existing;
+
+  const clerkUser = await clerkClient.users.getUser(userId);
+
+  const primaryEmail =
+    clerkUser.emailAddresses.find((e) => e.id === clerkUser.primaryEmailAddressId)
+      ?.emailAddress ?? clerkUser.emailAddresses[0]?.emailAddress;
+
+  const fullName =
+    [clerkUser.firstName, clerkUser.lastName].filter(Boolean).join(" ") || null;
+
+  return queries.upsertUser({
+    id: userId,
+    email: primaryEmail ?? `${userId}@no-email.local`, // email notNull + unique
+    name: fullName,
+    phone: clerkUser.phoneNumbers[0]?.phoneNumber ?? null,
+    imageUrl: clerkUser.imageUrl ?? null,
+  });
+};
+
+// ---------------------------------------------------------------------
+// Public
+// ---------------------------------------------------------------------
+
+// Tüm aktif ilanları getir
 export const getAllProperties = async (req: Request, res: Response) => {
   try {
     const properties = await queries.getAllProperties();
@@ -220,20 +61,11 @@ export const getAllProperties = async (req: Request, res: Response) => {
   }
 };
 
-// Öne çıkan ilanları getir (Public)
-// Helper: Güvenli sayı alma
-const parsePositiveNumber = (val: unknown): number | undefined => {
-  if (typeof val !== "string") return undefined;
-  const num = Number(val);
-  return Number.isFinite(num) && num > 0 ? num : undefined;
-};
-
-// Öne çıkan ilanlar (Public)
+// Öne çıkan ilanlar
 export const getFeaturedProperties = async (req: Request, res: Response) => {
   try {
     const rawLimit = req.query.limit;
-    
-    // Geçersiz sayısal string gönderildiyse
+
     if (rawLimit !== undefined && typeof rawLimit !== "string") {
       res.status(400).json({ error: "Invalid limit parameter" });
       return;
@@ -248,57 +80,8 @@ export const getFeaturedProperties = async (req: Request, res: Response) => {
     res.status(500).json({ error: "Failed to get featured properties" });
   }
 };
-/*
-// Dinamik filtreleme ve arama parametreleriyle ilanları getir (Public)
-export const getFilteredProperties = async (req: Request, res: Response) => {
-  try {
-    const {
-      city,
-      district,
-      neighborhood,
-      listingType,
-      propertyType,
-      categoryId,
-      minPrice,
-      maxPrice,
-      minNetM2,
-      maxNetM2,
-      roomCount,
-      isFeatured,
-      searchQuery,
-    } = req.query;
 
-    const filters = {
-      city: city as string | undefined,
-      district: district as string | undefined,
-      neighborhood: neighborhood as string | undefined,
-      listingType: listingType as PropertyFilterParams["listingType"],
-      propertyType: propertyType as PropertyFilterParams["propertyType"],
-      categoryId: categoryId as string | undefined,
-      minPrice: minPrice ? Number(minPrice) : undefined,
-      maxPrice: maxPrice ? Number(maxPrice) : undefined,
-      minNetM2: minNetM2 ? Number(minNetM2) : undefined,
-      maxNetM2: maxNetM2 ? Number(maxNetM2) : undefined,
-      roomCount: roomCount as string | undefined,
-      isFeatured: isFeatured !== undefined ? isFeatured === "true" : undefined,
-      searchQuery: searchQuery as string | undefined,
-    };
-
-    const properties = await queries.getFilteredProperties(filters);
-    res.status(200).json(properties);
-  } catch (error) {
-    console.error("Error filtering properties:", error);
-    res.status(500).json({ error: "Failed to filter properties" });
-  }
-};
-*/
-
-// Helper: Tekil string alma (Dizi/Array olarak gönderilen parametreleri engellemek için)
-const parseStringParam = (val: unknown): string | undefined => {
-  return typeof val === "string" ? val : undefined;
-};
-
-// Dinamik filtreleme ve arama parametreleriyle ilanları getir (Public)
+// Dinamik filtreleme ve arama
 export const getFilteredProperties = async (req: Request, res: Response) => {
   try {
     const {
@@ -329,7 +112,10 @@ export const getFilteredProperties = async (req: Request, res: Response) => {
       minNetM2: parsePositiveNumber(minNetM2),
       maxNetM2: parsePositiveNumber(maxNetM2),
       roomCount: parseStringParam(roomCount),
-      isFeatured: parseStringParam(isFeatured) !== undefined ? parseStringParam(isFeatured) === "true" : undefined,
+      isFeatured:
+        parseStringParam(isFeatured) !== undefined
+          ? parseStringParam(isFeatured) === "true"
+          : undefined,
       searchQuery: parseStringParam(searchQuery),
     };
 
@@ -341,13 +127,11 @@ export const getFilteredProperties = async (req: Request, res: Response) => {
   }
 };
 
-
-// hepsiAI Esnek Arama Entegrasyonu (Public)
+// hepsiAI esnek arama entegrasyonu
 export const searchPropertiesWithAI = async (req: Request, res: Response) => {
   try {
     const aiParsedParams = req.body;
 
-    // Body boş ise veya uygun nesne verilmediyse hata dön
     if (!aiParsedParams || typeof aiParsedParams !== "object") {
       res.status(400).json({ error: "Invalid AI filter parameters" });
       return;
@@ -361,7 +145,7 @@ export const searchPropertiesWithAI = async (req: Request, res: Response) => {
   }
 };
 
-// Slug ile İlan Detayı Getir (Public)
+// Slug ile ilan detayı
 export const getPropertyBySlug = async (req: Request, res: Response) => {
   try {
     const { slug } = req.params;
@@ -379,7 +163,7 @@ export const getPropertyBySlug = async (req: Request, res: Response) => {
   }
 };
 
-// ID ile İlan Detayı Getir (Public)
+// ID ile ilan detayı
 export const getPropertyById = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
@@ -397,9 +181,11 @@ export const getPropertyById = async (req: Request, res: Response) => {
   }
 };
 
-// Yeni İlan Oluştur (Protected - Sadece Danışman)
-// src/controllers/propertyController.ts
+// ---------------------------------------------------------------------
+// Protected (Danışman)
+// ---------------------------------------------------------------------
 
+// Yeni ilan oluştur
 export const createProperty = async (req: Request, res: Response) => {
   try {
     const { userId } = getAuth(req);
@@ -413,9 +199,12 @@ export const createProperty = async (req: Request, res: Response) => {
       slug,
       description,
       price,
+      currency,
       city,
       district,
       neighborhood,
+      address,
+      mapCoordinates,
       listingType,
       propertyType,
       categoryId,
@@ -424,28 +213,79 @@ export const createProperty = async (req: Request, res: Response) => {
       grossM2,
       roomCount,
       buildingAge,
-      floorNumber, // 🟢 floorLocation yerine floorNumber
-      totalFloors, // 🟢 Ek olarak toplam kat sayısı
-      heatingType, // 🟢 heating yerine heatingType
+      floorNumber,
+      totalFloors,
+      heatingType,
+      distances,
+      features,
       isFeatured,
+      isActive,
       images,
     } = req.body;
 
-    if (!title || !slug || !price || !city || !district || !coverImage || !categoryId) {
-      res.status(400).json({
-        error: "Title, slug, price, city, district, coverImage, and categoryId are required",
-      });
-      return;
-    }
-
-    const property = await queries.createProperty({
+    // Zorunlu alan kontrolü: hangi alan eksikse mesajda söylenir
+    const requiredFields: Record<string, unknown> = {
       title,
       slug,
       description,
       price,
       city,
       district,
+      coverImage,
+      categoryId,
+      listingType,
+      propertyType,
+    };
+
+    const missing = Object.entries(requiredFields)
+      .filter(([, value]) => value === undefined || value === null || value === "")
+      .map(([key]) => key);
+
+    if (missing.length > 0) {
+      res.status(400).json({ error: `Missing required fields: ${missing.join(", ")}` });
+      return;
+    }
+
+    if (typeof price !== "number" || !Number.isFinite(price) || price < 0) {
+      res.status(400).json({ error: "price must be a valid non-negative number" });
+      return;
+    }
+
+    if (!LISTING_TYPES.includes(listingType)) {
+      res.status(400).json({
+        error: `Invalid listingType. Allowed: ${LISTING_TYPES.join(", ")}`,
+      });
+      return;
+    }
+
+    if (!PROPERTY_TYPES.includes(propertyType)) {
+      res.status(400).json({
+        error: `Invalid propertyType. Allowed: ${PROPERTY_TYPES.join(", ")}`,
+      });
+      return;
+    }
+
+    if (currency !== undefined && !CURRENCIES.includes(currency)) {
+      res.status(400).json({
+        error: `Invalid currency. Allowed: ${CURRENCIES.join(", ")}`,
+      });
+      return;
+    }
+
+    // 🟢 Clerk kullanıcısı users tablosunda yoksa otomatik ekle
+    await ensureUserExists(userId);
+
+    const property = await queries.createProperty({
+      title,
+      slug,
+      description,
+      price,
+      currency,
+      city,
+      district,
       neighborhood,
+      address,
+      mapCoordinates,
       listingType,
       propertyType,
       categoryId,
@@ -454,22 +294,50 @@ export const createProperty = async (req: Request, res: Response) => {
       grossM2,
       roomCount,
       buildingAge,
-      floorNumber, // 🟢 Doğru alan adı
-      totalFloors, // 🟢 Şemada tanımlı alan
-      heatingType, // 🟢 Doğru alan adı
+      floorNumber,
+      totalFloors,
+      heatingType,
+      distances,
+      features,
       isFeatured,
-      images,
+      isActive,
+      images: Array.isArray(images) ? images : [],
       userId,
     });
 
     res.status(201).json(property);
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error creating property:", error);
+
+    // Postgres hataları: 23505 = unique ihlali, 23503 = foreign key ihlali
+    const code = error?.code ?? error?.cause?.code;
+    const constraint: string = error?.constraint ?? error?.cause?.constraint ?? "";
+
+    if (code === "23505") {
+      if (constraint.includes("email")) {
+        res.status(409).json({
+          error: "Bu e-posta ile users tablosunda başka bir kayıt var (Clerk id farklı).",
+        });
+      } else {
+        res.status(409).json({ error: "Bu slug ile bir ilan zaten mevcut, başlığı değiştirin." });
+      }
+      return;
+    }
+
+    if (code === "23503") {
+      res.status(400).json({
+        error: constraint.includes("category")
+          ? "Geçersiz categoryId."
+          : "Kullanıcı kaydı bulunamadı (users tablosunu kontrol edin).",
+      });
+      return;
+    }
+
     res.status(500).json({ error: "Failed to create property" });
   }
 };
 
-// İlan Güncelle (Protected - Sadece Danışman)
+// İlan güncelle
 export const updateProperty = async (req: Request, res: Response) => {
   try {
     const { userId } = getAuth(req);
@@ -480,23 +348,38 @@ export const updateProperty = async (req: Request, res: Response) => {
 
     const { id } = req.params;
 
-    // İlanın varlığını kontrol et
     const existingProperty = await queries.getPropertyById(id as string);
     if (!existingProperty) {
       res.status(404).json({ error: "Property not found" });
       return;
     }
 
-    const updatedProperty = await queries.updateProperty(id as string, req.body);
+    // Değiştirilmemesi gereken alanları body'den ayıkla
+    const {
+      id: _id,
+      userId: _userId,
+      createdAt: _createdAt,
+      updatedAt: _updatedAt,
+      ...updateData
+    } = req.body ?? {};
+
+    const updatedProperty = await queries.updateProperty(id as string, updateData);
 
     res.status(200).json(updatedProperty);
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error updating property:", error);
+
+    const code = error?.code ?? error?.cause?.code;
+    if (code === "23505") {
+      res.status(409).json({ error: "Bu slug ile bir ilan zaten mevcut." });
+      return;
+    }
+
     res.status(500).json({ error: "Failed to update property" });
   }
 };
 
-// İlan Sil (Protected - Sadece Danışman)
+// İlan sil
 export const deleteProperty = async (req: Request, res: Response) => {
   try {
     const { userId } = getAuth(req);
@@ -507,7 +390,6 @@ export const deleteProperty = async (req: Request, res: Response) => {
 
     const { id } = req.params;
 
-    // İlanın varlığını kontrol et
     const existingProperty = await queries.getPropertyById(id as string);
     if (!existingProperty) {
       res.status(404).json({ error: "Property not found" });
