@@ -313,7 +313,7 @@ export const PropertyDetailPage = () => {
             {/* HIZLI İLETİŞİM BUTONLARI (Telefon & WhatsApp) */}
             <div className="grid grid-cols-2 gap-3 pt-1">
               <a
-                href={`tel:${phoneNumber}`}
+                href={`tel:${phoneNumber.replace(/\s+/g, '')}`}
                 className="flex items-center justify-center gap-2 py-3 px-4 bg-[#224239] hover:bg-[#19332C] text-white rounded-xl text-xs font-semibold transition-all shadow-sm group"
               >
                 <Phone className="w-4 h-4 text-[#D96B43] group-hover:scale-110 transition-transform" />

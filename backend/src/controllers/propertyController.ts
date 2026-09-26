@@ -196,6 +196,7 @@ export const getPropertyImage = async (req: Request, res: Response) => {
       "Content-Length": buffer.length.toString(),
       "Cache-Control": "public, max-age=31536000, immutable",
       ETag: image.id,
+      
     });
 
     res.send(buffer);
