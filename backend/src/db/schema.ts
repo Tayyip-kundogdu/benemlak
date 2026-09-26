@@ -130,6 +130,32 @@ export const properties = pgTable("properties", {
   index("properties_user_id_idx").on(table.userId),
 ]);
 
+// schema.ts - mevcut properties tablosundan sonra ekleyin
+
+export const propertyImages = pgTable("property_images", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  propertyId: uuid("property_id")
+    .notNull()
+    .references(() => properties.id, { onDelete: "cascade" }),
+  data: text("data").notNull(),
+  mimeType: text("mime_type").notNull(),
+  isCover: boolean("is_cover").notNull().default(false),
+  order: integer("order").notNull().default(0),
+  createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
+}, (table) => [
+  index("property_images_property_id_idx").on(table.propertyId),
+]);
+
+export const propertyImagesRelations = relations(propertyImages, ({ one }) => ({
+  property: one(properties, {
+    fields: [propertyImages.propertyId],
+    references: [properties.id],
+  }),
+}));
+
+export type PropertyImage = typeof propertyImages.$inferSelect;
+export type NewPropertyImage = typeof propertyImages.$inferInsert;
+
 // 4️⃣ Leads / Form Messages (Gelen Müşteri Talepleri & Mesajlar)
 export const leads = pgTable("leads", {
   id: uuid("id").defaultRandom().primaryKey(),

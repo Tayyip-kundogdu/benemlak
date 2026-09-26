@@ -27,6 +27,7 @@ export const PropertyCard = ({ property }) => {
   const mainImage = images?.[0] || 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&w=800&q=80';
   const displayArea = areaNet || area;
   const isPropertyFeatured = isFeatured || featured;
+  const detailUrl = `/ilan/${slug || id}`;
 
   const formatPrice = (amount) => {
     if (amount === null || amount === undefined || typeof amount !== 'number' || Number.isNaN(amount)) {
@@ -38,7 +39,7 @@ export const PropertyCard = ({ property }) => {
   return (
     <div className="group bg-white rounded-2xl overflow-hidden border border-[#224239]/10 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col h-full">
       {/* Görsel ve Rozetler */}
-      <div className="relative aspect-[4/3] overflow-hidden bg-gray-100">
+      <Link to={detailUrl} className="relative aspect-[4/3] overflow-hidden bg-gray-100">
         <img
           src={mainImage}
           alt={title || 'İlan'}
@@ -63,7 +64,7 @@ export const PropertyCard = ({ property }) => {
             <span className="capitalize">{category.name}</span>
           </div>
         )}
-      </div>
+      </Link>
 
       {/* Kart İçeriği */}
       <div className="p-5 flex flex-col flex-grow justify-between bg-white">

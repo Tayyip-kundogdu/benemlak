@@ -3,7 +3,7 @@ import Modal from '../ui/Modal';
 import { useCreateProperty, useUpdateProperty } from '../../hooks/useProperties';
 import { useCategories } from '../../hooks/useCategories';
 import { LISTING_TYPES, PROPERTY_TYPES } from '../../api/properties';
-import { Check, Loader2 } from 'lucide-react';
+import { Check, Loader2, Upload, X, Image as ImageIcon } from 'lucide-react';
 
 const LISTING_LABELS = {
   satilik: 'Satılık',
@@ -21,6 +21,8 @@ const PROPERTY_LABELS = {
   bina: 'Bina',
 };
 
+const HEATING_OPTIONS = ['Kombi doğalgaz', 'Merkezi', 'Soba'];
+
 const EMPTY_FORM = {
   title: '',
   listingType: 'satilik',
@@ -35,7 +37,6 @@ const EMPTY_FORM = {
   netM2: '',
   heatingType: 'Kombi doğalgaz',
   isFeatured: false,
-  coverImage: '',
 };
 
 const DEFAULT_IMG =
@@ -54,13 +55,14 @@ export const PropertyFormModal = ({ isOpen, onClose, initialData = null }) => {
   const { data: categories = [] } = useCategories();
 
   const [formData, setFormData] = useState(EMPTY_FORM);
+  const [selectedImages, setSelectedImages] = useState([]);
   const [errorMsg, setErrorMsg] = useState('');
 
   useEffect(() => {
     if (initialData && isOpen) {
       setFormData({
         title: initialData.title || '',
-        listingType: initialData.listingType || 'satilik',
+        listingType: initialData.listingType || initialData.type || 'satilik',
         propertyType: initialData.propertyType || 'daire',
         categoryId: initialData.categoryId || '',
         price: initialData.price ?? '',
@@ -68,20 +70,20 @@ export const PropertyFormModal = ({ isOpen, onClose, initialData = null }) => {
         city: initialData.city || 'Çorum',
         district: initialData.district || 'Merkez',
         neighborhood: initialData.neighborhood || '',
-        roomCount: initialData.roomCount || '',
-        netM2: initialData.netM2 ?? '',
-        heatingType: initialData.heatingType || 'Kombi doğalgaz',
-        isFeatured: Boolean(initialData.isFeatured),
-        coverImage: initialData.coverImage || '',
+        roomCount: initialData.roomCount || initialData.bedroomCount || '',
+        netM2: initialData.netM2 || initialData.areaNet || '',
+        heatingType: initialData.heatingType || initialData.heating || 'Kombi doğalgaz',
+        isFeatured: Boolean(initialData.isFeatured || initialData.featured),
       });
+      setSelectedImages(initialData.images || []);
       setErrorMsg('');
     } else if (!isOpen) {
       setFormData(EMPTY_FORM);
+      setSelectedImages([]);
       setErrorMsg('');
     }
   }, [initialData, isOpen]);
 
-  // Kategori yüklenince ve seçili değilse ilkini seç
   useEffect(() => {
     if (isOpen && !formData.categoryId && categories.length > 0) {
       setFormData((prev) => ({ ...prev, categoryId: categories[0].id }));
@@ -96,25 +98,40 @@ export const PropertyFormModal = ({ isOpen, onClose, initialData = null }) => {
     }));
   };
 
+  // 📸 Bilgisayardan Çoklu Fotoğraf Yükleme İşleyicisi
+  const handleImageUpload = (e) => {
+    const files = Array.from(e.target.files);
+    if (!files.length) return;
+
+    files.forEach((file) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setSelectedImages((prev) => [...prev, reader.result]);
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleRemoveImage = (indexToRemove) => {
+    setSelectedImages((prev) => prev.filter((_, idx) => idx !== indexToRemove));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMsg('');
 
     if (!formData.categoryId) {
-      setErrorMsg('Lütfen bir kategori seçin. (Kategori listesi boşsa önce kategori ekleyin.)');
+      setErrorMsg('Lütfen bir kategori seçin.');
       return;
     }
 
     try {
-      const cover = formData.coverImage.trim() || DEFAULT_IMG;
+      const imagesList = selectedImages.length > 0 ? selectedImages : [DEFAULT_IMG];
 
-      // Alan adları schema ile birebir aynı.
-      // Sayı dönüşümü, boş alan temizliği ve slug üretimi
-      // api/properties.js içindeki buildPropertyPayload'da yapılıyor.
       const payload = {
         ...formData,
-        coverImage: cover,
-        images: [cover],
+        coverImage: imagesList[0],
+        images: imagesList,
       };
 
       if (isEditMode) {
@@ -125,7 +142,7 @@ export const PropertyFormModal = ({ isOpen, onClose, initialData = null }) => {
 
       onClose();
     } catch (err) {
-      console.error('İlan kaydedilirken hata oluştu:', err?.response?.data || err);
+      console.error('İlan kaydedilirken hata oluştu:', err);
       const d = err?.response?.data;
       setErrorMsg(
         d?.error || d?.message || err?.message || 'İlan kaydedilirken bir sunucu hatası oluştu.'
@@ -237,22 +254,50 @@ export const PropertyFormModal = ({ isOpen, onClose, initialData = null }) => {
           />
         </div>
 
-        {/* Görsel URL */}
+        {/* 📸 BİLGİSAYARDAN BİRDEN FAZLA FOTOĞRAF YÜKLEME ALANI */}
         <div>
           <label className={labelClass}>
-            Görsel Linki / URL{' '}
-            <span className="text-[10px] text-[#224239]/50">
-              (Boş bırakılırsa örnek görsel atanır)
-            </span>
+            İlan Fotoğrafları <span className="text-[10px] text-[#224239]/50">(Birden fazla seçebilirsiniz)</span>
           </label>
-          <input
-            type="url"
-            name="coverImage"
-            value={formData.coverImage}
-            onChange={handleChange}
-            placeholder="https://images.unsplash.com/..."
-            className={inputClass}
-          />
+          
+          <label className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-[#224239]/20 hover:border-[#224239] rounded-2xl cursor-pointer bg-white transition-all text-center group">
+            <Upload className="w-8 h-8 text-[#224239]/50 group-hover:text-[#224239] transition-colors mb-2" />
+            <span className="text-xs font-semibold text-[#224239]">
+              Fotoğrafları seçmek için tıklayın
+            </span>
+            <span className="text-[10px] text-gray-400 mt-1">PNG, JPG, WEBP (Aynı anda birden fazla yüklenebilir)</span>
+            <input
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={handleImageUpload}
+              className="hidden"
+            />
+          </label>
+
+          {/* Yüklenen Fotoğrafların Önizlemesi */}
+          {selectedImages.length > 0 && (
+            <div className="grid grid-cols-4 sm:grid-cols-6 gap-3 mt-3">
+              {selectedImages.map((imgSrc, idx) => (
+                <div key={idx} className="relative group/img aspect-square rounded-xl overflow-hidden border border-[#224239]/20 shadow-sm">
+                  <img src={imgSrc} alt={`Yüklenen ${idx + 1}`} className="w-full h-full object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveImage(idx)}
+                    className="absolute top-1 right-1 p-1 bg-rose-600 text-white rounded-full opacity-80 hover:opacity-100 transition-opacity"
+                    title="Görseli Kaldır"
+                  >
+                    <X size={12} />
+                  </button>
+                  {idx === 0 && (
+                    <span className="absolute bottom-0 left-0 right-0 bg-[#224239]/80 text-white text-[9px] text-center py-0.5">
+                      Kapak
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Açıklama */}
@@ -345,14 +390,18 @@ export const PropertyFormModal = ({ isOpen, onClose, initialData = null }) => {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center pt-2">
           <div>
             <label className={labelClass}>Isıtma Tipi</label>
-            <input
-              type="text"
+            <select
               name="heatingType"
               value={formData.heatingType}
               onChange={handleChange}
-              placeholder="Kombi doğalgaz"
-              className={inputClass}
-            />
+              className={selectClass}
+            >
+              {HEATING_OPTIONS.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div className="flex items-center gap-2 pt-5 sm:pt-4">

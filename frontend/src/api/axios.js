@@ -18,8 +18,17 @@ export const setupAxiosInterceptors = (getToken) => {
     } catch (error) {
       console.error('Clerk token alınırken hata oluştu:', error);
     }
+
+    // 🟢 FormData gönderiliyorsa, sabit 'application/json' header'ını kaldır
+    // böylece axios/tarayıcı doğru 'multipart/form-data; boundary=...' header'ını
+    // kendisi otomatik ayarlayabilsin.
+    if (config.data instanceof FormData) {
+      delete config.headers['Content-Type'];
+    }
+
     return config;
   });
+  return api;
 };
 
 export default api;
