@@ -1,6 +1,6 @@
 import { api } from './axios';
 
-// ---------- Sabitler (formdaki select'lerde de kullanılıyor) ----------
+// ---------- Sabitler ----------
 export const LISTING_TYPES = ['satilik', 'kiralik', 'sezonluk_kiralik', 'konut_projesi'];
 export const PROPERTY_TYPES = ['daire', 'villa', 'müstakil_ev', 'arsa', 'isyeri', 'bina'];
 export const CURRENCIES = ['TRY', 'USD', 'EUR'];
@@ -23,7 +23,6 @@ export const slugify = (text) => {
     .replace(/\-\-+/g, '-');
 };
 
-// slug unique olduğu için sonuna kısa bir ek koyuyoruz
 const uniqueSlug = (title) =>
   `${slugify(title)}-${Math.random().toString(36).slice(2, 6)}`;
 
@@ -51,6 +50,11 @@ const stripEmpty = (obj) => {
 };
 
 export const buildPropertyPayload = (data, { isUpdate = false } = {}) => {
+  // Eğer gönderilen veri FormData ise temizlemeyi yapma, doğrudan FormData'yı döndür!
+  if (data instanceof FormData) {
+    return data;
+  }
+
   const payload = {
     title: toStr(data.title),
     slug: toStr(data.slug) || (data.title ? uniqueSlug(data.title) : undefined),
@@ -86,14 +90,14 @@ export const buildPropertyPayload = (data, { isUpdate = false } = {}) => {
       publicTransportMeters: toFloat(data.distances?.publicTransportMeters),
     }),
 
-      features: Array.isArray(data.features)
+    features: Array.isArray(data.features)
       ? data.features.filter(Boolean)
       : isUpdate ? undefined : [],
 
     coverImage: toStr(data.coverImage),
     images: Array.isArray(data.images)
-  ? data.images.filter(Boolean)
-  : isUpdate ? undefined : [],
+      ? data.images.filter(Boolean)
+      : isUpdate ? undefined : [],
     isFeatured: Boolean(data.isFeatured),
     isActive:
       data.isActive === undefined
@@ -101,10 +105,8 @@ export const buildPropertyPayload = (data, { isUpdate = false } = {}) => {
         : Boolean(data.isActive),
 
     categoryId: toStr(data.categoryId),
-    // userId GÖNDERME: backend Clerk token'dan alıyor
   };
 
-  // Güncellemede slug verilmediyse mevcut slug'ı bozma
   if (isUpdate && !data.slug) delete payload.slug;
 
   return Object.fromEntries(Object.entries(payload).filter(([, v]) => v !== undefined));
@@ -123,18 +125,16 @@ export const getApiErrorMessage = (error) => {
 const normalizeProperty = (item) => {
   if (!item) return item;
 
-  // listingType eşlemesi (satilik -> sale, kiralik -> rent)
   let type = item.listingType;
   if (item.listingType === 'satilik') type = 'sale';
   if (item.listingType === 'kiralik') type = 'rent';
 
-  // images dizisi boşsa coverImage'i kullan
   const images = (Array.isArray(item.images) && item.images.length > 0)
     ? item.images
     : (item.coverImage ? [item.coverImage] : []);
 
   return {
-    ...item, // backend'den gelen orijinal alanları koru
+    ...item,
     type,
     bedroomCount: item.roomCount,
     rooms: item.roomCount,
@@ -145,7 +145,6 @@ const normalizeProperty = (item) => {
   };
 };
 
-// Hem liste hem tekil veri için destek sağlayan wrapper:
 const normalizeResponse = (data) => {
   if (!data) return data;
   if (Array.isArray(data)) {
@@ -178,18 +177,23 @@ export const getPropertyById = async (id) => {
   return normalizeResponse(response.data);
 };
 
-// 5️⃣ Yeni ilan oluştur (Protected)
+// 🟢 5️⃣ Yeni ilan oluştur (FormData Desteği Eklendi)
 export const createProperty = async (propertyData) => {
-  const response = await api.post('/properties', buildPropertyPayload(propertyData));
+  const payload = propertyData instanceof FormData 
+    ? propertyData 
+    : buildPropertyPayload(propertyData);
+
+  const response = await api.post('/properties', payload);
   return normalizeResponse(response.data);
 };
 
-// 6️⃣ İlan güncelle (Protected)
+// 🟢 6️⃣ İlan güncelle (FormData Desteği Eklendi)
 export const updateProperty = async (id, propertyData) => {
-  const response = await api.put(
-    `/properties/${id}`,
-    buildPropertyPayload(propertyData, { isUpdate: true })
-  );
+  const payload = propertyData instanceof FormData 
+    ? propertyData 
+    : buildPropertyPayload(propertyData, { isUpdate: true });
+
+  const response = await api.put(`/properties/${id}`, payload);
   return normalizeResponse(response.data);
 };
 

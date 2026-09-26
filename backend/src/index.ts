@@ -19,8 +19,13 @@ app.use(cors({ origin: ENV.FRONTEND_URL, credentials: true }));
 // Auth nesnesini req'e ekler (Admin paneli ilan ekleme/düzenleme kontrolleri için)
 app.use(clerkMiddleware()); 
 
-app.use(express.json()); // JSON istekleri
-app.use(express.urlencoded({ extended: true })); // Form verileri
+
+
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
+
+// 🟢 Uploads klasörünü statik servis olarak açıyoruz (Fotoğraflara HTTP üzerinden erişim için)
+app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
 // Health Check ve API Bilgisi
 app.get("/api/health", (req, res) => {
@@ -29,7 +34,7 @@ app.get("/api/health", (req, res) => {
     endpoints: {
       properties: "/api/properties", // İlan listeleme, detay, filtreleme
       categories: "/api/categories", // Satılık, Kiralık, Sezonluk vb.
-      leads: "/api/leads",           // Müşteri iletişim/teklif formları               // hepsiAI benzeri akıllı arama/öneri motoru
+      leads: "/api/leads",           // Müşteri iletişim/teklif formları
       faqs: "/api/faqs",             // Sıkça Sorulan Sorular
     },
   });
@@ -41,6 +46,7 @@ app.use("/api/categories", categoryRoutes);
 app.use("/api/leads", leadRoutes);
 app.use("/api/faqs", faqsRoutes); // Sıkça Sorulan Sorular için route
 app.use("/api/ai", aiRoutes); // AI özellikler için route
+
 // Production Build Servisi (SPA Routing)
 if (ENV.NODE_ENV === "production") {
   const __dirname = path.resolve();
@@ -53,7 +59,5 @@ if (ENV.NODE_ENV === "production") {
     res.sendFile(path.join(__dirname, "../frontend/dist/index.html"));
   });
 }
-
-
 
 app.listen(ENV.PORT, () => console.log("Real Estate Server running on PORT:", ENV.PORT));

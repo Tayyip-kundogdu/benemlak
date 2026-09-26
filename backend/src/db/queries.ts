@@ -2,6 +2,7 @@ import { db } from "./index";
 import { eq, and, gte, lte, ilike, desc, asc, sql } from "drizzle-orm";
 import {
   properties,
+  propertyImages,
   users,
   categories,
   leads,
@@ -113,9 +114,56 @@ export const deleteCategory = async (id: string) => {
 // 3️⃣ PROPERTY QUERIES (Emlak İlanları)
 // ==========================================
 
-export const createProperty = async (data: NewProperty) => {
-  const [property] = await db.insert(properties).values(data).returning();
-  return property;
+// ==========================================
+// 3️⃣ PROPERTY QUERIES (Emlak İlanları)
+// ==========================================
+
+type CreatePropertyInput = NewProperty & {
+  files?: Express.Multer.File[]; // multer memoryStorage'dan gelen dosyalar (opsiyonel)
+};
+
+export const createProperty = async (data: CreatePropertyInput) => {
+  const { files, ...propertyData } = data;
+
+  // 🟢 Dosya yoksa: eski davranış aynen korunuyor (tek insert)
+  if (!files || files.length === 0) {
+    const [property] = await db.insert(properties).values(propertyData).returning();
+    return property;
+  }
+
+  // 🟢 Dosya varsa: transaction içinde property + property_images birlikte oluşturuluyor
+  return db.transaction(async (tx) => {
+    const [property] = await tx
+      .insert(properties)
+      .values({ ...propertyData, coverImage: "" }) // geçici, aşağıda güncellenecek
+      .returning();
+
+    const insertedImages = await tx
+      .insert(propertyImages)
+      .values(
+        files.map((file, idx) => ({
+          propertyId: property.id,
+          data: file.buffer.toString("base64"),
+          mimeType: file.mimetype,
+          isCover: idx === 0,
+          order: idx,
+        }))
+      )
+      .returning({ id: propertyImages.id });
+
+    const imageUrls = insertedImages.map((img) => `/api/properties/images/${img.id}`);
+
+    const [updated] = await tx
+      .update(properties)
+      .set({
+        coverImage: imageUrls[0],
+        images: imageUrls,
+      })
+      .where(eq(properties.id, property.id))
+      .returning();
+
+    return updated;
+  });
 };
 
 // Tüm aktif ilanlar (Kategori ve Danışman bilgisiyle)
@@ -244,19 +292,60 @@ export const searchPropertiesWithAI = async (aiParsedParams: PropertyFilterParam
 type PropertyUpdate = Partial<
   Omit<NewProperty, "id" | "createdAt" | "updatedAt">
 >;
-export const updateProperty = async (id: string, data: Partial<NewProperty>) => {
-  // ✅ Doğrudan update et ve sonucunu kontrol et
-  const [updatedProperty] = await db
-    .update(properties)
-    .set({ ...data, updatedAt: new Date() })
-    .where(eq(properties.id, id))
-    .returning();
+export const updateProperty = async (
+  id: string,
+  data: Partial<NewProperty>,
+  files?: Express.Multer.File[]
+) => {
+  // Dosya yoksa: eski davranış aynen kalıyor
+  if (!files || files.length === 0) {
+    const [updatedProperty] = await db
+      .update(properties)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(properties.id, id))
+      .returning();
 
-  if (!updatedProperty) {
-    throw new Error(`Property with id ${id} not found`);
+    if (!updatedProperty) {
+      throw new Error(`Property with id ${id} not found`);
+    }
+    return updatedProperty;
   }
 
-  return updatedProperty;
+  // Dosya varsa: eski görselleri sil, yenilerini ekle, property'yi güncelle
+  return db.transaction(async (tx) => {
+    await tx.delete(propertyImages).where(eq(propertyImages.propertyId, id));
+
+    const inserted = await tx
+      .insert(propertyImages)
+      .values(
+        files.map((file, idx) => ({
+          propertyId: id,
+          data: file.buffer.toString("base64"),
+          mimeType: file.mimetype,
+          isCover: idx === 0,
+          order: idx,
+        }))
+      )
+      .returning({ id: propertyImages.id });
+
+    const imageUrls = inserted.map((img) => `/api/properties/images/${img.id}`);
+
+    const [updatedProperty] = await tx
+      .update(properties)
+      .set({
+        ...data,
+        coverImage: imageUrls[0],
+        images: imageUrls,
+        updatedAt: new Date(),
+      })
+      .where(eq(properties.id, id))
+      .returning();
+
+    if (!updatedProperty) {
+      throw new Error(`Property with id ${id} not found`);
+    }
+    return updatedProperty;
+  });
 };
 
 export const deleteProperty = async (id: string) => {
@@ -270,6 +359,13 @@ export const deleteProperty = async (id: string) => {
   }
 
   return deletedProperty;
+};
+
+// 🟢 Görsel servis endpoint'i için tekil görsel getirme
+export const getPropertyImageById = async (imageId: string) => {
+  return db.query.propertyImages.findFirst({
+    where: eq(propertyImages.id, imageId),
+  });
 };
 
 // ==========================================

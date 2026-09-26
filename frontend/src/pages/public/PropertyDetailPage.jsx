@@ -12,6 +12,8 @@ import {
   Bath,
   Square,
   Building,
+  Phone,
+  MessageCircle,
 } from 'lucide-react';
 import { usePropertyDetailBySlug } from '../../hooks/useProperties';
 import { useCreateLead } from '../../hooks/useLeads';
@@ -20,16 +22,11 @@ import LoadingSpinner from '../../components/ui/LoadingSpinner';
 export const PropertyDetailPage = () => {
   const { slug } = useParams();
 
-  // API Data Hook
   const { data: property, isLoading, isError } = usePropertyDetailBySlug(slug);
-
-  // Lead Mutation
   const createLeadMutation = useCreateLead();
 
-  // Gallery State
   const [currentImgIndex, setCurrentImgIndex] = useState(0);
 
-  // Form State
   const [formData, setFormData] = useState({
     fullName: '',
     phone: '',
@@ -120,7 +117,7 @@ export const PropertyDetailPage = () => {
   const {
     title,
     price,
-    type, // 'sale' | 'rent' | 'Satılık' | 'Kiralık'
+    type,
     city = 'Çorum',
     district = 'Merkez',
     neighborhood,
@@ -136,6 +133,12 @@ export const PropertyDetailPage = () => {
   const displayArea = areaNet || area;
   const isSale = type === 'sale' || type === 'Satılık';
 
+  const phoneNumber = '0536 071 4822';
+  const whatsappNumber = '905360714822';
+  const whatsappText = encodeURIComponent(
+    `Merhaba, "${title}" ilanınız hakkında detaylı bilgi almak istiyorum.`
+  );
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Geri Dön Butonu */}
@@ -148,14 +151,34 @@ export const PropertyDetailPage = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         {/* SOL KOLON: GALERİ VE DETAYLAR */}
-        <div className="lg:col-span-7 space-y-6">
-          {/* Ana Görsel & Galeri */}
-          <div className="relative bg-stone-200 rounded-3xl overflow-hidden shadow-sm aspect-[4/3]">
+        <div className="lg:col-span-7 space-y-4">
+          {/* Ana Görsel & Ok Yönlü Galeri */}
+          <div className="relative bg-stone-200 rounded-3xl overflow-hidden shadow-md aspect-[4/3] group">
             <img
               src={images[currentImgIndex]}
               alt={title}
               className="w-full h-full object-cover transition-all duration-300"
             />
+
+            {/* Sağ ve Sol Ok Yönlü Gezinme Butonları */}
+            {images.length > 1 && (
+              <>
+                <button
+                  onClick={prevGalleryImage}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/80 text-white p-2.5 rounded-full backdrop-blur-md transition-all shadow-lg hover:scale-110"
+                  aria-label="Önceki Fotoğraf"
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
+                <button
+                  onClick={nextGalleryImage}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/80 text-white p-2.5 rounded-full backdrop-blur-md transition-all shadow-lg hover:scale-110"
+                  aria-label="Sonraki Fotoğraf"
+                >
+                  <ChevronRight className="w-5 h-5" />
+                </button>
+              </>
+            )}
 
             {/* Rozetler */}
             <div className="absolute bottom-4 left-4 flex gap-2">
@@ -176,51 +199,39 @@ export const PropertyDetailPage = () => {
               </span>
             </div>
 
-            {/* Galeri Navigasyonu */}
+            {/* Fotoğraf Sayacı */}
             {images.length > 1 && (
-              <div className="absolute bottom-4 right-4 bg-black/60 text-white text-xs px-3 py-1 rounded-full backdrop-blur-sm flex items-center gap-2">
-                <button
-                  onClick={prevGalleryImage}
-                  className="hover:text-[#D96B43] transition-colors"
-                  aria-label="Önceki Görsel"
-                >
-                  <ChevronLeft className="w-4 h-4" />
-                </button>
-                <span>
-                  {currentImgIndex + 1} / {images.length}
-                </span>
-                <button
-                  onClick={nextGalleryImage}
-                  className="hover:text-[#D96B43] transition-colors"
-                  aria-label="Sonraki Görsel"
-                >
-                  <ChevronRight className="w-4 h-4" />
-                </button>
+              <div className="absolute top-4 right-4 bg-black/60 text-white text-xs px-3 py-1 rounded-full backdrop-blur-sm">
+                {currentImgIndex + 1} / {images.length}
               </div>
             )}
           </div>
 
           {/* Galeri Küçük Resimler (Thumbnails) */}
           {images.length > 1 && (
-            <div className="flex gap-3 overflow-x-auto pb-2">
+            <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-thin">
               {images.map((img, idx) => (
-                <img
+                <button
                   key={idx}
-                  src={img}
-                  alt={`Görsel ${idx + 1}`}
                   onClick={() => setCurrentImgIndex(idx)}
-                  className={`w-16 h-12 object-cover rounded-xl cursor-pointer border-2 transition-all ${
+                  className={`relative flex-shrink-0 w-20 h-16 rounded-xl overflow-hidden border-2 transition-all cursor-pointer ${
                     idx === currentImgIndex
-                      ? 'border-[#D96B43] opacity-100 scale-105'
-                      : 'border-transparent opacity-70 hover:opacity-100'
+                      ? 'border-[#D96B43] scale-105 shadow-md ring-2 ring-[#D96B43]/30'
+                      : 'border-transparent opacity-60 hover:opacity-100'
                   }`}
-                />
+                >
+                  <img
+                    src={img}
+                    alt={`Küçük Görsel ${idx + 1}`}
+                    className="w-full h-full object-cover"
+                  />
+                </button>
               ))}
             </div>
           )}
 
           {/* İlan Bilgileri */}
-          <div>
+          <div className="pt-2">
             <span className="text-xs font-semibold tracking-widest text-[#D96B43] uppercase">
               PORTFÖY DETAYI
             </span>
@@ -289,16 +300,47 @@ export const PropertyDetailPage = () => {
 
         {/* SAĞ KOLON: İLAN İÇİN BİLGİ / İLETİŞİM FORMU */}
         <div className="lg:col-span-5">
-          <div className="bg-[#FAF8F2] p-6 sm:p-8 rounded-3xl border border-[#224239]/10 sticky top-28 shadow-sm">
-            <h3 className="font-serif text-xl font-medium text-[#224239] mb-1">
-              Bu İlan İçin Bilgi Alın
-            </h3>
-            <p className="text-xs text-[#224239]/60 mb-6">
-              Danışmanımıza hızlıca mesaj iletebilir, randevu oluşturabilirsiniz.
-            </p>
+          <div className="bg-[#FAF8F2] p-6 sm:p-8 rounded-3xl border border-[#224239]/10 sticky top-28 shadow-sm space-y-6">
+            <div>
+              <h3 className="font-serif text-xl font-medium text-[#224239] mb-1">
+                Bu İlan İçin Bilgi Alın
+              </h3>
+              <p className="text-xs text-[#224239]/60">
+                Danışmanımıza hızlıca mesaj iletebilir, telefon veya WhatsApp ile anında ulaşabilirsiniz.
+              </p>
+            </div>
+
+            {/* HIZLI İLETİŞİM BUTONLARI (Telefon & WhatsApp) */}
+            <div className="grid grid-cols-2 gap-3 pt-1">
+              <a
+                href={`tel:${phoneNumber}`}
+                className="flex items-center justify-center gap-2 py-3 px-4 bg-[#224239] hover:bg-[#19332C] text-white rounded-xl text-xs font-semibold transition-all shadow-sm group"
+              >
+                <Phone className="w-4 h-4 text-[#D96B43] group-hover:scale-110 transition-transform" />
+                <span>Hemen Ara</span>
+              </a>
+
+              <a
+                href={`https://wa.me/${whatsappNumber}?text=${whatsappText}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center gap-2 py-3 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold transition-all shadow-sm group"
+              >
+                <MessageCircle className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                <span>WhatsApp</span>
+              </a>
+            </div>
+
+            <div className="relative flex py-1 items-center">
+              <div className="flex-grow border-t border-[#224239]/15"></div>
+              <span className="flex-shrink mx-3 text-[11px] font-semibold text-[#224239]/50 uppercase tracking-widest">
+                VEYA FORM DOLDURUN
+              </span>
+              <div className="flex-grow border-t border-[#224239]/15"></div>
+            </div>
 
             {isSubmitted && (
-              <div className="mb-6 p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-2xl flex items-center gap-2 text-xs font-medium animate-fadeIn">
+              <div className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-2xl flex items-center gap-2 text-xs font-medium animate-fadeIn">
                 <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
                 <span>Talebiniz başarıyla iletildi. En kısa sürede sizi arayacağız.</span>
               </div>
@@ -356,7 +398,7 @@ export const PropertyDetailPage = () => {
                 </label>
                 <textarea
                   name="message"
-                  rows="4"
+                  rows="3"
                   required
                   value={formData.message}
                   onChange={handleFormChange}
@@ -367,7 +409,7 @@ export const PropertyDetailPage = () => {
               <button
                 type="submit"
                 disabled={createLeadMutation.isPending}
-                className="w-full py-3.5 bg-[#D96B43] hover:bg-[#C85A32] text-white rounded-xl text-sm font-medium transition-all shadow-sm flex items-center justify-center gap-2 disabled:opacity-50"
+                className="w-full py-3.5 bg-[#D96B43] hover:bg-[#C85A32] text-white rounded-xl text-sm font-medium transition-all shadow-sm flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
               >
                 {createLeadMutation.isPending ? (
                   <>
